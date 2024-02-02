@@ -340,7 +340,6 @@ func (rf *Raft) _getLastLogTerm() int {
 
 /* helper function */
 func (rf *Raft) _reset_election_timer() {
-
 	electionTimeout := 300 + (rand.Int63() % 300)
 	rf.electionTimeout = time.Duration(electionTimeout) * time.Millisecond
 	rf.lastElection = time.Now()
@@ -349,6 +348,8 @@ func (rf *Raft) _reset_election_timer() {
 }
 
 func (rf *Raft) pastElectionTimeout() bool {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 	f := time.Since(rf.lastElection) > rf.electionTimeout
 	return f
 }
@@ -358,8 +359,8 @@ func (rf *Raft) _reset_heartbeat_timer() {
 }
 
 func (rf *Raft) pastHeartbeatTimeout() bool {
-	// rf.mu.Lock()
-	// defer rf.mu.Unlock()
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 	return time.Since(rf.lastHeartbeat) > heartbeatTimeout
 }
 
@@ -480,19 +481,30 @@ func (rf *Raft) ticker() {
 		switch rf.state {
 		case STATE_FOLLOWER:
 			if rf.pastElectionTimeout() {
+				rf.mu.Lock()
 				rf.state = STATE_CANDIDATE
+				rf.mu.Unlock()
 				rf.LeaderElection_handler()
-			} else {
-				time.Sleep(10 * time.Millisecond)
 			}
-		// case STATE_CANDIDATE:
-		// 	rf.LeaderElection_handler()
+			// else {
+			// 	time.Sleep(10 * time.Millisecond)
+			// }
+		case STATE_CANDIDATE:
+			if rf.pastElectionTimeout() {
+				rf.LeaderElection_handler()
+			}
+			//else {
+			//	time.Sleep(10 * time.Millisecond)
+			//}
 		case STATE_LEADER:
 			if rf.pastHeartbeatTimeout() {
 				rf._reset_heartbeat_timer()
 				rf.RPC_handler(1)
 			}
 		}
+		// time.Sleep(50 * time.Millisecond)
+		time.Sleep(time.Duration(40+(rand.Int63()%10)) * time.Millisecond)
+		//300 + (rand.Int63() % 300)
 
 	}
 }
@@ -533,7 +545,9 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		}(i)
 	}
 
+	rf.mu.Lock()
 	rf._reset_election_timer()
+	rf.mu.Unlock()
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
