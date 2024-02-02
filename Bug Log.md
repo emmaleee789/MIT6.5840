@@ -45,8 +45,43 @@
 
 
 
-2024.1.16
+#### 2024.1.16 - 18
 
 7. “if a quorum arises, it should elect a leader” 问题应该和TestManyElections2A问题一样，都是断联后选举的问题/断联后重新加入
 
+   <img src="/Users/emmaleee/Library/Application Support/typora-user-images/截屏2024-01-18 上午11.22.44.png" alt="截屏2024-01-18 上午11.22.44" style="zoom:35%;" />
+
+   1. 在看“一步一步实现6.824”的帖子中，发现了 raft 论文的 FSA 图，并且发现自己少了一个 candidate-》candidate 的逻辑，但是这个没有解决问题
+
+<img src="https://upload-images.jianshu.io/upload_images/10803273-33362de939630d17.png?imageMogr2/auto-orient/strip|imageView2/2/w/684/format/webp" alt="img" style="zoom:73%;" />
+
+​	2. 但是增加了candidate-》candidate这个逻辑后，发现一个问题：candidate 疯狂自增自己的 term
+
+​		原因猜测：Time 没设置好，间隔的时间太短导致一直触发 start election 的函数
+
+<img src="/Users/emmaleee/Library/Application Support/typora-user-images/截屏2024-01-18 下午3.57.16.png" alt="截屏2024-01-18 下午3.57.16" style="zoom:35%;" />
+
 8. readPersist
+
+   
+
+#### 2024.2.2
+
+9. 解决完问题 7 的两个问题后，新问题出现：
+
+<img src="/Users/emmaleee/Library/Application Support/typora-user-images/截屏2024-01-18 上午11.42.46.png" alt="截屏2024-01-18 上午11.42.46" style="zoom:35%;" />
+
+<img src="/Users/emmaleee/Library/Application Support/typora-user-images/截屏2024-02-02 下午2.30.04.png" alt="截屏2024-02-02 下午2.30.04" style="zoom:33%;" />
+
+​	解决方案：将问题 7 中新增的 sleep 的时间变为随机数，这样子就可以避免同时竞争
+
+10. 锁的问题：在将 ticker() 这个函数整个套上 mutex 锁之后，死锁
+
+    问题：单协程中mutex 嵌套调用
+
+    解决方案：在不死锁的前提下加mutex
+
+<img src="/Users/emmaleee/Desktop/截屏2024-02-02 下午3.14.54.png" alt="截屏2024-02-02 下午3.14.54" style="zoom:50%;" />
+
+​	
+
