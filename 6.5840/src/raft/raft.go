@@ -191,8 +191,6 @@ type AppendEntriesReply struct {
 
 // example RequestVote RPC handler.
 // for candidate (receiver)
-// 响应投票请求
-// lock!!!!!!
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (2A, 2B).
 	rf.mu.Lock()
@@ -343,7 +341,6 @@ func (rf *Raft) _reset_election_timer() {
 	electionTimeout := 300 + (rand.Int63() % 300)
 	rf.electionTimeout = time.Duration(electionTimeout) * time.Millisecond
 	rf.lastElection = time.Now()
-	// DPrintf(111, "%v: 选举的超时时间设置为%d", rf.SayMeL(), rf.electionTimeout)
 
 }
 
@@ -371,24 +368,18 @@ func (rf *Raft) AppendEntry_handler(command interface{}) LogEntry {
 }
 
 // used by leader
-// lock用在哪里？？
 func (rf *Raft) LeaderElection_handler() {
 	rf.mu.Lock()
 	rf.currentTerm += 1
 	rf.votedFor = rf.me
 	rf.cntVote += 1
-	// rf.cntReply += 1
 	term := rf.currentTerm
-	// done := false
-	// rf._reset_election_timer() bug log: 万一这轮选举还没完，这个 timer 又 timeout 又发生新的选举
 
 	var args *RequestVoteArgs = &RequestVoteArgs{
 		Term:         rf.currentTerm,
 		CandidateID:  rf.me,
 		LastLogIndex: len(rf.logs),
 		LastLogTerm:  rf._getLastLogTerm()}
-
-	// currentTerm := rf.currentTerm
 
 	rf.mu.Unlock()
 
@@ -431,10 +422,6 @@ func (rf *Raft) LeaderElection_handler() {
 			}
 		}(i) // bug log
 	}
-	// if done {
-	// 	rf._reset_heartbeat_timer()
-	// 	rf.RPC_handler(1) //选举成功立刻发送
-	// }
 }
 
 // when a server becomes the leader... send empty RPC
@@ -486,25 +473,17 @@ func (rf *Raft) ticker() {
 				rf.mu.Unlock()
 				rf.LeaderElection_handler()
 			}
-			// else {
-			// 	time.Sleep(10 * time.Millisecond)
-			// }
 		case STATE_CANDIDATE:
 			if rf.pastElectionTimeout() {
 				rf.LeaderElection_handler()
 			}
-			//else {
-			//	time.Sleep(10 * time.Millisecond)
-			//}
 		case STATE_LEADER:
 			if rf.pastHeartbeatTimeout() {
 				rf._reset_heartbeat_timer()
 				rf.RPC_handler(1)
 			}
 		}
-		// time.Sleep(50 * time.Millisecond)
 		time.Sleep(time.Duration(40+(rand.Int63()%10)) * time.Millisecond)
-		//300 + (rand.Int63() % 300)
 
 	}
 }
