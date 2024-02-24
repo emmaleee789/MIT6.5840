@@ -483,7 +483,7 @@ func (rf *Raft) ticker() {
 				rf.RPC_handler(1)
 			}
 		}
-		time.Sleep(time.Duration(40+(rand.Int63()%10)) * time.Millisecond)
+		time.Sleep(time.Duration(70+(rand.Int63()%10)) * time.Millisecond)
 
 	}
 }
